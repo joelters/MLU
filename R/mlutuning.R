@@ -1,7 +1,8 @@
-#' Dyadic ML Hyperparameter Tuning
+#' MLU Hyperparameter Tuning
 #'
-#' Performs hyperparameter tuning for dyadic machine learning models across
+#' Performs hyperparameter tuning for pairwise machine learning models across
 #' multiple algorithms including Random Forest, XGBoost, CatBoost, and neural networks.
+#' Uses symmetric features: levels (sum) and distances (absolute differences).
 #'
 #' @param X Dataframe containing all the features on which the model was estimated.
 #' @param Y Vector containing the labels for which the model was estimated.
@@ -16,6 +17,9 @@
 #' @param polynomial.Lasso.grid Degree of polynomial to be fitted when using Lasso.
 #' @param polynomial.Ridge.grid Degree of polynomial to be fitted when using Ridge.
 #' @param polynomial.Logit_lasso.grid Degree of polynomial to be fitted when using Logit_lasso.
+#' @param polynomial.OLS.grid Degree of polynomial to be fitted when using OLS.
+#' @param polynomial.NLLS_exp.grid Degree of polynomial to be fitted when using NLLS_exp.
+#' @param polynomial.loglin.grid Degree of polynomial to be fitted when using loglin.
 #' @param xgb.nrounds.grid Number of boosting iterations for XGBoost.
 #' @param xgb.eta.grid Learning rate for XGBoost.
 #' @param xgb.depth.grid Maximum depth of trees for XGBoost.
@@ -30,12 +34,17 @@
 #' @param torch.learning_rate.grid Learning rates for neural network training.
 #' @param torch.dropout.grid Dropout rates for neural networks.
 #' @param torch.epochs.grid Number of training epochs for neural networks.
+#' @param var_penalization Penalization parameter for variance in RMSE calculation. Default is 0.
+#' @param OLSensemble String vector specifying which learners should be used in OLS ensemble method.
+#' @param SL.library String vector specifying which learners should be used in SuperLearner.
+#' @param subsample Either NULL (use all data), a proportion between 0 and 1, or an integer number of observations to randomly subsample before creating pairs. This can significantly reduce computational time for tuning. Default is NULL.
+#' @param verbose Logical specifying whether to print progress. Default is TRUE.
 #'
 #' @return Tuning results from ML::MLtuning().
 #'
 #' @export
-dyadtuning <- function(X, Y, f,
-                       ML = c("Lasso", "Ridge", "RF", "CIF", "XGB", "CB", "Logit_lasso"),
+mlutuning <- function(X, Y, f,
+                       ML = c("Lasso", "Ridge", "RF", "CIF", "XGB", "CB", "Torch", "Logit_lasso", "OLS", "NLLS_exp", "loglin", "OLSensemble"),
                        Kcv = 5,
                        rf.cf.ntree.grid = c(100, 300, 500),
                        rf.depth.grid = c(2, 4, 6, Inf),
@@ -45,6 +54,9 @@ dyadtuning <- function(X, Y, f,
                        polynomial.Lasso.grid = c(1, 2, 3),
                        polynomial.Ridge.grid = c(1, 2, 3),
                        polynomial.Logit_lasso.grid = c(1, 2, 3),
+                       polynomial.OLS.grid = c(1, 2, 3),
+                       polynomial.NLLS_exp.grid = c(1, 2, 3),
+                       polynomial.loglin.grid = c(1, 2, 3),
                        xgb.nrounds.grid = c(100, 200, 500),
                        xgb.eta.grid = c(0.01, 0.1, 0.3),
                        xgb.depth.grid = c(1, 3, 6),
@@ -58,20 +70,98 @@ dyadtuning <- function(X, Y, f,
                        torch.hidden_units.grid = list(c(64, 32), c(128, 64), c(256, 128, 64)),
                        torch.learning_rate.grid = c(0.001, 0.01, 0.1),
                        torch.dropout.grid = c(0, 0.2, 0.5),
-                       torch.epochs.grid = c(50, 100, 200)) {
-  # Create dyads
+                       torch.epochs.grid = c(50, 100, 200),
+                       var_penalization = 0,
+                       OLSensemble = NULL,
+                       SL.library = NULL,
+                       subsample = NULL,
+                       verbose = TRUE) {
+  
+  # Subsample data if requested
+  n_original <- length(Y)
+  if (!is.null(subsample)) {
+    if (subsample > 0 && subsample < 1) {
+      # Treat as proportion
+      n_subsample <- floor(n_original * subsample)
+    } else if (subsample >= 1 && subsample <= n_original) {
+      # Treat as number of observations
+      n_subsample <- floor(subsample)
+    } else {
+      stop("subsample must be NULL, a proportion (0-1), or an integer between 1 and n")
+    }
+    
+    if (n_subsample < n_original) {
+      set.seed(123)  # For reproducibility
+      idx <- sample(1:n_original, n_subsample, replace = FALSE)
+      X <- X[idx, , drop = FALSE]
+      Y <- Y[idx]
+      
+      if (verbose) {
+        cat(sprintf("\nSubsampling: %d -> %d observations (%.1f%%)\n", 
+                    n_original, n_subsample, 100 * n_subsample / n_original))
+      }
+    }
+  }
+  
+  # Create pairwise combinations
   n <- length(Y)
   n1 <- n - 1
-  XX <- matrix(0, n * (n - 1) * 0.5, ncol(X) * 2)
-  YY <- rep(0, n * (n - 1) * 0.5)
+  n_pairs <- n * (n - 1) * 0.5
+  
+  if (verbose) {
+    cat("\n======================================\n")
+    cat("MLU Hyperparameter Tuning\n")
+    cat("======================================\n")
+    if (!is.null(subsample) && n < n_original) {
+      cat(sprintf("Original observations: %d (subsampled to %d)\n", n_original, n))
+    } else {
+      cat(sprintf("Observations: %d\n", n))
+    }
+    cat(sprintf("Pairs created: %d\n", n_pairs))
+  }
+  
+  XX <- matrix(0, n_pairs, ncol(X) * 2)
+  YY <- rep(0, n_pairs)
   cnt <- 0
   for (i in 1:n1) {
     j1 <- i + 1
     for (j in j1:n) {
       cnt <- cnt + 1
-      XX[cnt, ] <- c(as.numeric(X[i, ]), as.numeric(X[j, ]))
+      Xi <- as.numeric(X[i, ])
+      Xj <- as.numeric(X[j, ])
+      XX[cnt, ] <- c(Xi + Xj, abs(Xi - Xj))
       YY[cnt] <- f(Y[i], Y[j])
     }
+  }
+  
+  if (verbose) {
+    cat(sprintf("Features created: %d (symmetric: levels + distances)\n", ncol(XX)))
+    cat(sprintf("\nTuning ML algorithms: %s\n", paste(ML, collapse = ", ")))
+    cat(sprintf("Cross-validation folds: %d\n", Kcv))
+    
+    # Print grid sizes
+    for (ml in ML) {
+      if (ml == "Lasso") {
+        cat(sprintf("  - Lasso: testing %d polynomial degrees\n", length(polynomial.Lasso.grid)))
+      } else if (ml == "Ridge") {
+        cat(sprintf("  - Ridge: testing %d polynomial degrees\n", length(polynomial.Ridge.grid)))
+      } else if (ml == "RF") {
+        n_combinations <- length(rf.cf.ntree.grid) * length(rf.depth.grid) * length(mtry.grid)
+        cat(sprintf("  - RF: testing %d combinations (trees × depth × mtry)\n", n_combinations))
+      } else if (ml == "XGB") {
+        n_combinations <- length(xgb.nrounds.grid) * length(xgb.depth.grid)
+        cat(sprintf("  - XGB: testing %d combinations (rounds × depth)\n", n_combinations))
+      } else if (ml == "CB") {
+        n_combinations <- length(cb.iterations.grid) * length(cb.depth.grid)
+        cat(sprintf("  - CB: testing %d combinations (iterations × depth)\n", n_combinations))
+      } else if (ml == "Torch") {
+        n_combinations <- length(torch.hidden_units.grid) * length(torch.learning_rate.grid) * 
+                         length(torch.dropout.grid) * length(torch.epochs.grid)
+        cat(sprintf("  - Torch: testing %d combinations (architecture × lr × dropout × epochs)\n", 
+                    n_combinations))
+      }
+    }
+    cat("======================================\n\n")
   }
   
   ML::MLtuning(as.data.frame(XX), YY, ML = ML, Kcv = Kcv,
@@ -83,18 +173,19 @@ dyadtuning <- function(X, Y, f,
                polynomial.Lasso.grid = polynomial.Lasso.grid,
                polynomial.Ridge.grid = polynomial.Ridge.grid,
                polynomial.Logit_lasso.grid = polynomial.Logit_lasso.grid,
+               polynomial.OLS.grid = polynomial.OLS.grid,
+               polynomial.NLLS_exp.grid = polynomial.NLLS_exp.grid,
+               polynomial.loglin.grid = polynomial.loglin.grid,
                xgb.nrounds.grid = xgb.nrounds.grid,
-               xgb.eta.grid = xgb.eta.grid,
-               xgb.depth.grid = xgb.depth.grid,
-               xgb.child_weight.grid = xgb.child_weight.grid,
-               xgb.subsample.grid = xgb.subsample.grid,
-               xgb.colsample.grid = xgb.colsample.grid,
+               xgb.max.depth.grid = xgb.depth.grid,
                cb.iterations.grid = cb.iterations.grid,
                cb.depth.grid = cb.depth.grid,
-               cb.learning_rate.grid = cb.learning_rate.grid,
-               cb.l2_leaf_reg.grid = cb.l2_leaf_reg.grid,
                torch.hidden_units.grid = torch.hidden_units.grid,
-               torch.learning_rate.grid = torch.learning_rate.grid,
+               torch.lr.grid = torch.learning_rate.grid,
                torch.dropout.grid = torch.dropout.grid,
-               torch.epochs.grid = torch.epochs.grid)
+               torch.epochs.grid = torch.epochs.grid,
+               var_penalization = var_penalization,
+               OLSensemble = OLSensemble,
+               SL.library = SL.library,
+               verbose = verbose)
 }

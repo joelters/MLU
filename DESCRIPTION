@@ -2,10 +2,10 @@ Package: MLU
 Type: Package
 Title: Machine Learning U-Statistics
 Version: 0.1.0
-Authors@R: person("Joel Terschuur", role = c("aut", "cre"))
+Authors@R: person("Joel", "Terschuur", email = "joel.terschuur@proton.me", role = c("aut", "cre"))
 Description: Functions for estimation of conditional U-statistics with machine 
-    learning for dyadic data structures. Provides tools for model estimation, 
-    cross-validation, hyperparameter tuning, and fitted value estimation for 
+    learning for pairwise data structures. Provides tools for model estimation, 
+    hyperparameter tuning, and fitted value estimation for 
     pairwise data relationships (EVERYTHING IS IN DEVELOPMENT).
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -14,4 +14,4 @@ Depends:
     R (>= 3.5.0)
 Imports:
     ML
-RoxygenNote: 7.2.0
+RoxygenNote: 7.3.2
