@@ -4,7 +4,7 @@
 ################################################################################
 
 # Load the package (after installation)
-# library(MLU)
+library(MLU)
 
 ################################################################################
 # Example 1: Basic pairwise model estimation
@@ -25,7 +25,8 @@ Y <- 2 * D + X$x1 + 0.5 * X$x2 + rnorm(n, sd = 0.5)  # Outcome
 f_abs_diff <- function(y1, y2) abs(y1 - y2)
 
 # Fit a pairwise model
-model <- mlumodest(D, X, Y, f = f_abs_diff, ML = c("Lasso", "RF"))
+model <- mlumodest(D, X, Y, f = f_abs_diff, ML = c("Lasso"),
+polynomial.Lasso = 2)
 print("Model fitted successfully!")
 
 ################################################################################
@@ -43,7 +44,7 @@ tuning_results <- mlutuning(
   rf.cf.ntree.grid = c(100, 200),
   rf.depth.grid = c(2, 4),
   mtry.grid = c(1, 2),
-  subsample = 50  # Use 50 observations for faster computation
+  subsample = NULL  # Use 50 observations for faster computation
 )
 
 cat("\nHyperparameter tuning completed!\n")

@@ -144,6 +144,21 @@ mlumodest <- function(D, X, Y, f,
                     else if ("Logit_lasso" %in% ML) polynomial.Logit_lasso
                     else polynomial.OLS
       cat(sprintf("  - Polynomial degree: %d\n", poly_param))
+      
+      # Calculate estimated number of features after polynomial expansion
+      if (poly_param > 1) {
+        n_feat <- ncol(XX)
+        if (poly_param == 2) {
+          n_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+        } else if (poly_param == 3) {
+          n_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                     n_feat * (n_feat - 1) * (n_feat - 2) / 6
+        } else {
+          # For higher degrees, give an approximation
+          n_terms <- choose(n_feat + poly_param, poly_param)
+        }
+        cat(sprintf("  - Features after expansion: ~%d (includes interactions)\n", round(n_terms)))
+      }
     }
     if ("RF" %in% ML || "CIF" %in% ML) {
       cat(sprintf("  - Number of trees: %d\n", rf.cf.ntree))

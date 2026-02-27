@@ -30,7 +30,7 @@ learning methods from the ML package.
 }
 
 \author{
-\strong{Maintainer}: Joel Terschuur
+\strong{Maintainer}: Joel Terschuur \email{joel.terschuur@proton.me}
 
 }
 \keyword{internal}

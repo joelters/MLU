@@ -142,9 +142,107 @@ mlutuning <- function(X, Y, f,
     # Print grid sizes
     for (ml in ML) {
       if (ml == "Lasso") {
-        cat(sprintf("  - Lasso: testing %d polynomial degrees\n", length(polynomial.Lasso.grid)))
+        cat(sprintf("  - Lasso: testing %d polynomial degrees", length(polynomial.Lasso.grid)))
+        if (max(polynomial.Lasso.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.Lasso.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
       } else if (ml == "Ridge") {
-        cat(sprintf("  - Ridge: testing %d polynomial degrees\n", length(polynomial.Ridge.grid)))
+        cat(sprintf("  - Ridge: testing %d polynomial degrees", length(polynomial.Ridge.grid)))
+        if (max(polynomial.Ridge.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.Ridge.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
+      } else if (ml == "Logit_lasso") {
+        cat(sprintf("  - Logit_lasso: testing %d polynomial degrees", length(polynomial.Logit_lasso.grid)))
+        if (max(polynomial.Logit_lasso.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.Logit_lasso.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
+      } else if (ml == "OLS") {
+        cat(sprintf("  - OLS: testing %d polynomial degrees", length(polynomial.OLS.grid)))
+        if (max(polynomial.OLS.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.OLS.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
+      } else if (ml == "NLLS_exp") {
+        cat(sprintf("  - NLLS_exp: testing %d polynomial degrees", length(polynomial.NLLS_exp.grid)))
+        if (max(polynomial.NLLS_exp.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.NLLS_exp.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
+      } else if (ml == "loglin") {
+        cat(sprintf("  - loglin: testing %d polynomial degrees", length(polynomial.loglin.grid)))
+        if (max(polynomial.loglin.grid) > 1) {
+          n_feat <- ncol(XX)
+          max_poly <- max(polynomial.loglin.grid)
+          if (max_poly == 2) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2
+          } else if (max_poly == 3) {
+            max_terms <- 1 + n_feat + n_feat * (n_feat - 1) / 2 + 
+                         n_feat * (n_feat - 1) * (n_feat - 2) / 6
+          } else {
+            max_terms <- choose(n_feat + max_poly, max_poly)
+          }
+          cat(sprintf(" (up to ~%d features with degree %d)\n", round(max_terms), max_poly))
+        } else {
+          cat("\n")
+        }
       } else if (ml == "RF") {
         n_combinations <- length(rf.cf.ntree.grid) * length(rf.depth.grid) * length(mtry.grid)
         cat(sprintf("  - RF: testing %d combinations (trees × depth × mtry)\n", n_combinations))
