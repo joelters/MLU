@@ -23,15 +23,9 @@ mlutuning(
   polynomial.NLLS_exp.grid = c(1, 2, 3),
   polynomial.loglin.grid = c(1, 2, 3),
   xgb.nrounds.grid = c(100, 200, 500),
-  xgb.eta.grid = c(0.01, 0.1, 0.3),
-  xgb.depth.grid = c(1, 3, 6),
-  xgb.child_weight.grid = c(1, 5, 10),
-  xgb.subsample.grid = c(0.5, 0.75, 1),
-  xgb.colsample.grid = c(0.5, 0.75, 1),
+  xgb.max.depth.grid = c(1, 3, 6),
   cb.iterations.grid = c(100, 500, 1000),
   cb.depth.grid = c(1, 3, 6, 10),
-  cb.learning_rate.grid = c(0.01, 0.1, 0.3),
-  cb.l2_leaf_reg.grid = c(1, 3, 5, 7, 9),
   torch.hidden_units.grid = list(c(64, 32), c(128, 64), c(256, 128, 64)),
   torch.learning_rate.grid = c(0.001, 0.01, 0.1),
   torch.dropout.grid = c(0, 0.2, 0.5),
@@ -76,23 +70,11 @@ mlutuning(
 
 \item{xgb.nrounds.grid}{Number of boosting iterations for XGBoost.}
 
-\item{xgb.eta.grid}{Learning rate for XGBoost.}
-
-\item{xgb.depth.grid}{Maximum depth of trees for XGBoost.}
-
-\item{xgb.child_weight.grid}{Minimum sum of instance weight needed in a child for XGBoost.}
-
-\item{xgb.subsample.grid}{Subsample ratio of the training instances for XGBoost.}
-
-\item{xgb.colsample.grid}{Subsample ratio of columns when constructing each tree for XGBoost.}
+\item{xgb.max.depth.grid}{Maximum depth of trees for XGBoost.}
 
 \item{cb.iterations.grid}{Number of boosting iterations for CatBoost.}
 
 \item{cb.depth.grid}{Depth of the trees for CatBoost.}
-
-\item{cb.learning_rate.grid}{Learning rate for CatBoost.}
-
-\item{cb.l2_leaf_reg.grid}{L2 regularization coefficient for CatBoost.}
 
 \item{torch.hidden_units.grid}{List of hidden layer configurations for neural networks.}
 
@@ -112,7 +94,7 @@ mlutuning(
 
 \item{verbose}{Logical specifying whether to print progress. Default is TRUE.}
 
-\item{cf.depth}{How deep should trees be grown in CIF (Inf is full depth, default from partykit).}
+\item{cf.depth.grid}{How deep should trees be grown in CIF (Inf is full depth, default from partykit).}
 }
 \value{
 Tuning results from ML::MLtuning().
