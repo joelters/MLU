@@ -21,7 +21,7 @@ mluFVest(
   f,
   ML = c("Lasso", "Ridge", "RF", "CIF", "XGB", "CB", "Torch", "Logit_lasso", "OLS",
     "NLLS_exp", "loglin", "SL", "OLSensemble"),
-  shape = c("triangle", "square"),
+  shape = "triangle",
   polynomial.Lasso = 1,
   polynomial.Ridge = 1,
   polynomial.Logit_lasso = 1,
@@ -64,7 +64,7 @@ mluFVest(
 \item{ML}{String vector specifying which machine learners to use.}
 
 \item{shape}{Either "triangle" (within-sample pairs: i < j from same dataset) or
-"square" (between-sample pairs: all i,j combinations from two datasets).}
+"square" (between-sample pairs: all i,j combinations from two datasets). Default is "triangle".}
 
 \item{polynomial.Lasso}{Degree of polynomial to be fitted when using Lasso. Default is 1.}
 

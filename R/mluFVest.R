@@ -20,7 +20,7 @@
 #' @param f Function of Yi and Yj defining the dependent variable.
 #' @param ML String vector specifying which machine learners to use.
 #' @param shape Either "triangle" (within-sample pairs: i < j from same dataset) or
-#'   "square" (between-sample pairs: all i,j combinations from two datasets).
+#'   "square" (between-sample pairs: all i,j combinations from two datasets). Default is "triangle".
 #' @param polynomial.Lasso Degree of polynomial to be fitted when using Lasso. Default is 1.
 #' @param polynomial.Ridge Degree of polynomial to be fitted when using Ridge. Default is 1.
 #' @param polynomial.Logit_lasso Degree of polynomial to be fitted when using Logit_lasso. Default is 1.
@@ -48,7 +48,7 @@ mluFVest <- function(model,
                       Ynewj = NULL,
                       f,
                       ML = c("Lasso", "Ridge", "RF", "CIF", "XGB", "CB", "Torch", "Logit_lasso", "OLS", "NLLS_exp", "loglin", "SL", "OLSensemble"),
-                      shape = c("triangle", "square"),
+                      shape = "triangle",
                       polynomial.Lasso = 1,
                       polynomial.Ridge = 1,
                       polynomial.Logit_lasso = 1,
@@ -57,6 +57,8 @@ mluFVest <- function(model,
                       polynomial.loglin = 1,
                       coefs = NULL,
                       subsample = NULL) {
+
+  shape <- match.arg(shape, c("triangle", "square"))
   
   # Subsample data if requested
   if (!is.null(subsample)) {
