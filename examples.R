@@ -25,8 +25,7 @@ Y <- 2 * D + X$x1 + 0.5 * X$x2 + rnorm(n, sd = 0.5)  # Outcome
 f_abs_diff <- function(y1, y2) abs(y1 - y2)
 
 # Fit a pairwise model
-model <- mlumodest(D, X, Y, f = f_abs_diff, ML = c("Lasso"),
-polynomial.Lasso = 2)
+model <- mlumodest(D, X, Y, f = f_abs_diff, ML = c("OLS"), polynomial.OLS = 2)
 print("Model fitted successfully!")
 
 ################################################################################
@@ -73,8 +72,7 @@ fv <- mluFVest(
   Xnewi = X_new,
   Ynewi = Y_new,
   f = f_abs_diff,
-  ML = "Lasso",
-  shape = "triangle"
+  ML = "OLS"
 )
 
 cat("\nNumber of fitted values (triangle):", length(fv), "\n")
@@ -88,13 +86,18 @@ cat("Expected number of pairs:", n_new * (n_new - 1) / 2, "\n")
 # Useful for causal inference
 fv_all <- mluFVestab(
   model = model,
-  Xi = X[1:30, ],
-  Yi = Y[1:30],
-  Xnewi = X_new,
-  Ynewi = Y_new,
+  Xi = X,
+  Yi = Y,
+  Xnewi = X_new[1, ],
+  Ynewi = Y_new[1],
+  Xj = X,
+  Yj = Y,
+  Xnewj = X_new[2, ],
+  Ynewj = Y_new[2],
   f = f_abs_diff,
-  ML = "Lasso",
-  shape = "triangle"
+  ML = "OLS",
+  polynomial.OLS = 2,
+  shape = "square"
 )
 
 cat("\nFitted values for all treatment combinations:\n")
