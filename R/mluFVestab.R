@@ -99,7 +99,6 @@ mluFVestab <- function(model,
     YY <- rep(0, n * (n - 1) * 0.5)
     XXnew11 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     XXnew10 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
-    XXnew01 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     XXnew00 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, n * (n - 1) * 0.5)
     cnt <- 0
@@ -113,7 +112,6 @@ mluFVestab <- function(model,
         Xdiff <- abs(Xi - Xj)
         XXnew11[cnt, ] <- c(2, Xsum, 0, Xdiff)
         XXnew10[cnt, ] <- c(1, Xsum, 1, Xdiff)
-        XXnew01[cnt, ] <- c(1, Xsum, 1, Xdiff)
         XXnew00[cnt, ] <- c(0, Xsum, 0, Xdiff)
         YYnew[cnt] <- f(Ynewi[i], Ynewi[j])
       }
@@ -134,14 +132,6 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv01 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew01), YYnew, ML = ML,
-                      polynomial.Lasso = polynomial.Lasso,
-                      polynomial.Ridge = polynomial.Ridge,
-                      polynomial.Logit_lasso = polynomial.Logit_lasso,
-                      polynomial.OLS = polynomial.OLS,
-                      polynomial.NLLS_exp = polynomial.NLLS_exp,
-                      polynomial.loglin = polynomial.loglin,
-                      coefs = coefs)
     fv00 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew00), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
@@ -150,7 +140,7 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    return(list("fv11" = fv11, "fv10" = fv10, "fv01" = fv01, "fv00" = fv00))
+    return(list("fv11" = fv11, "fv10" = fv10, "fv01" = fv10, "fv00" = fv00))
   } else if (shape == "square") {
     ni <- length(Ynewi)
     nj <- length(Ynewj)
@@ -158,7 +148,6 @@ mluFVestab <- function(model,
     YY <- rep(0, ni * nj)
     XXnew11 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     XXnew10 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
-    XXnew01 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     XXnew00 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, ni * nj)
     cnt <- 0
@@ -171,7 +160,6 @@ mluFVestab <- function(model,
         Xdiff <- abs(Xi - Xj)
         XXnew11[cnt, ] <- c(2, Xsum, 0, Xdiff)
         XXnew10[cnt, ] <- c(1, Xsum, 1, Xdiff)
-        XXnew01[cnt, ] <- c(1, Xsum, 1, Xdiff)
         XXnew00[cnt, ] <- c(0, Xsum, 0, Xdiff)
         YYnew[cnt] <- f(Ynewi[i], Ynewj[j])
       }
@@ -192,14 +180,6 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv01 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew01), YYnew, ML = ML,
-                      polynomial.Lasso = polynomial.Lasso,
-                      polynomial.Ridge = polynomial.Ridge,
-                      polynomial.Logit_lasso = polynomial.Logit_lasso,
-                      polynomial.OLS = polynomial.OLS,
-                      polynomial.NLLS_exp = polynomial.NLLS_exp,
-                      polynomial.loglin = polynomial.loglin,
-                      coefs = coefs)
     fv00 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew00), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
@@ -208,6 +188,6 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    return(list("fv11" = fv11, "fv10" = fv10, "fv01" = fv01, "fv00" = fv00))
+    return(list("fv11" = fv11, "fv10" = fv10, "fv01" = fv10, "fv00" = fv00))
   }
 }
