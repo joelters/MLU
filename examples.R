@@ -164,3 +164,74 @@ cat("Expected number of pairs:", n1 * n2, "\n")
 cat("\n################################################################################\n")
 cat("All examples completed successfully!\n")
 cat("################################################################################\n")
+
+################################################################################
+# Example 8: Explicit pairwise reference example
+################################################################################
+
+# Separate example with 100 observations to illustrate the cached pairwise
+# reference data created by mlumodest().
+set.seed(321)
+n_cache <- 100
+D_cache <- rbinom(n_cache, 1, 0.5)
+X_cache <- data.frame(
+  x1 = rnorm(n_cache),
+  x2 = rnorm(n_cache)
+)
+Y_cache <- 1 + 2 * D_cache + X_cache$x1 - 0.5 * X_cache$x2 + rnorm(n_cache, sd = 0.25)
+
+# Pairwise outcome function used for illustration
+f_cache <- function(y1, y2) abs(y1 - y2)
+
+# Fit the model; mlumodest now stores the fitted learner plus cached
+# pairwise training reference data used by mluFVest / mluFVestab.
+model_cache <- mlumodest(
+  D_cache,
+  X_cache,
+  Y_cache,
+  f = f_cache,
+  ML = "OLS",
+  polynomial.OLS = 2,
+  verbose = FALSE
+)
+
+cat("\nCached model object contents:\n")
+print(names(model_cache))
+
+cat("\nCached pairwise training reference dimensions:\n")
+print(dim(model_cache$Xref))
+
+cat("\nFirst 6 rows of cached pairwise training reference Xref:\n")
+print(utils::head(model_cache$Xref))
+
+cat("\nFirst 6 cached pairwise outcomes Yref:\n")
+print(utils::head(model_cache$Yref))
+
+cat("\nFor 100 observations there are 100 * 99 / 2 =", n_cache * (n_cache - 1) / 2,
+    "pairwise training rows cached in Xref.\n")
+cat("Each Xref row stores [D_i + D_j, X_i + X_j, |D_i - D_j|, |X_i - X_j|].\n")
+
+# One new pair for prediction in square mode
+X_cache_new_i <- data.frame(x1 = 0.25, x2 = -0.50)
+Y_cache_new_i <- 1.8
+X_cache_new_j <- data.frame(x1 = -1.10, x2 = 0.75)
+Y_cache_new_j <- 0.2
+
+fv_cache <- mluFVestab(
+  model = model_cache,
+  Xi = X_cache,
+  Yi = Y_cache,
+  Xnewi = X_cache_new_i,
+  Ynewi = Y_cache_new_i,
+  Xj = X_cache,
+  Yj = Y_cache,
+  Xnewj = X_cache_new_j,
+  Ynewj = Y_cache_new_j,
+  f = f_cache,
+  ML = "OLS",
+  polynomial.OLS = 2,
+  shape = "square"
+)
+
+cat("\nOne-pair square predictions from cached reference data:\n")
+print(fv_cache)

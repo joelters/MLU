@@ -59,6 +59,56 @@ mluFVest <- function(model,
                       subsample = NULL) {
 
   shape <- match.arg(shape, c("triangle", "square"))
+
+  fit_model <- if (inherits(model, "mlu_model")) model$model else model
+
+  get_reference_data <- function() {
+    if (inherits(model, "mlu_model") && !is.null(model$Xref) && !is.null(model$Yref)) {
+      return(list(Xref = model$Xref, Yref = model$Yref))
+    }
+
+    if (shape == "triangle") {
+      n_train <- length(Yi)
+      n1_train <- n_train - 1
+      XXref <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
+      YYref <- rep(0, n_train * (n_train - 1) * 0.5)
+      cnt_train <- 0
+      for (ii in seq_len(n1_train)) {
+        jj1 <- ii + 1
+        for (jj in seq.int(jj1, n_train)) {
+          cnt_train <- cnt_train + 1
+          xi_train <- as.numeric(Xi[ii, ])
+          xj_train <- as.numeric(Xi[jj, ])
+          XXref[cnt_train, ] <- c(Di[ii] + Di[jj], xi_train + xj_train,
+                                  abs(Di[ii] - Di[jj]), abs(xi_train - xj_train))
+          YYref[cnt_train] <- f(Yi[ii], Yi[jj])
+        }
+      }
+    } else {
+      if (is.null(Dj) || is.null(Xj) || is.null(Yj)) {
+        stop("For shape = 'square' with a legacy model, Dj, Xj, and Yj must be provided")
+      }
+      ni_train <- length(Yi)
+      nj_train <- length(Yj)
+      XXref <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
+      YYref <- rep(0, ni_train * nj_train)
+      cnt_train <- 0
+      for (ii in seq_len(ni_train)) {
+        for (jj in seq_len(nj_train)) {
+          cnt_train <- cnt_train + 1
+          xi_train <- as.numeric(Xi[ii, ])
+          xj_train <- as.numeric(Xj[jj, ])
+          XXref[cnt_train, ] <- c(Di[ii] + Dj[jj], xi_train + xj_train,
+                                  abs(Di[ii] - Dj[jj]), abs(xi_train - xj_train))
+          YYref[cnt_train] <- f(Yi[ii], Yj[jj])
+        }
+      }
+    }
+
+    list(Xref = as.data.frame(XXref), Yref = YYref)
+  }
+
+  reference_data <- get_reference_data()
   
   # Subsample data if requested
   if (!is.null(subsample)) {
@@ -103,8 +153,6 @@ mluFVest <- function(model,
   if (shape == "triangle") {
     n <- length(Ynewi)
     n1 <- n - 1
-    XX <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
-    YY <- rep(0, n * (n - 1) * 0.5)
     XXnew <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, n * (n - 1) * 0.5)
     cnt <- 0
@@ -118,7 +166,7 @@ mluFVest <- function(model,
         YYnew[cnt] <- f(Ynewi[i], Ynewi[j])
       }
     }
-    ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew), YYnew, ML = ML,
+    ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew), YYnew, ML = ML,
               polynomial.Lasso = polynomial.Lasso,
               polynomial.Ridge = polynomial.Ridge,
               polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -129,8 +177,6 @@ mluFVest <- function(model,
   } else if (shape == "square") {
     ni <- length(Ynewi)
     nj <- length(Ynewj)
-    XX <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
-    YY <- rep(0, ni * nj)
     XXnew <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, ni * nj)
     cnt <- 0
@@ -143,7 +189,7 @@ mluFVest <- function(model,
         YYnew[cnt] <- f(Ynewi[i], Ynewj[j])
       }
     }
-    ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew), YYnew, ML = ML,
+    ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew), YYnew, ML = ML,
               polynomial.Lasso = polynomial.Lasso,
               polynomial.Ridge = polynomial.Ridge,
               polynomial.Logit_lasso = polynomial.Logit_lasso,

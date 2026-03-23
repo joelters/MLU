@@ -40,7 +40,8 @@
 #'   [D[i] + D[j], X[i] + X[j], |D[i] - D[j]|, |X[i] - X[j]|]
 #'   This representation respects the symmetric nature of pairwise data.
 #'
-#' @return A model object from ML::modest().
+#' @return An MLU model object containing the fitted model and cached pairwise
+#'   training reference data used for prediction.
 #'
 #' @export
 mlumodest <- function(D, X, Y, f,
@@ -186,27 +187,32 @@ mlumodest <- function(D, X, Y, f,
     cat("======================================\n\n")
   }
   
-  ML::modest(as.data.frame(XX), YY, ML = ML,
-             OLSensemble = OLSensemble,
-             SL.library = SL.library,
-             rf.cf.ntree = rf.cf.ntree,
-             rf.depth = rf.depth,
-             mtry = mtry,
-             cf.depth = cf.depth,
-             polynomial.Lasso = polynomial.Lasso,
-             polynomial.Ridge = polynomial.Ridge,
-             polynomial.Logit_lasso = polynomial.Logit_lasso,
-             polynomial.OLS = polynomial.OLS,
-             polynomial.NLLS_exp = polynomial.NLLS_exp,
-             polynomial.loglin = polynomial.loglin,
-             xgb.nrounds = xgb.nrounds,
-             xgb.max.depth = xgb.max.depth,
-             cb.iterations = cb.iterations,
-             cb.depth = cb.depth,
-             torch.epochs = torch.epochs,
-             torch.hidden_units = torch.hidden_units,
-             torch.lr = torch.lr,
-             torch.dropout = torch.dropout,
-             ensemblefolds = ensemblefolds,
-             start_nlls = start_nlls)
+  fit <- ML::modest(as.data.frame(XX), YY, ML = ML,
+                    OLSensemble = OLSensemble,
+                    SL.library = SL.library,
+                    rf.cf.ntree = rf.cf.ntree,
+                    rf.depth = rf.depth,
+                    mtry = mtry,
+                    cf.depth = cf.depth,
+                    polynomial.Lasso = polynomial.Lasso,
+                    polynomial.Ridge = polynomial.Ridge,
+                    polynomial.Logit_lasso = polynomial.Logit_lasso,
+                    polynomial.OLS = polynomial.OLS,
+                    polynomial.NLLS_exp = polynomial.NLLS_exp,
+                    polynomial.loglin = polynomial.loglin,
+                    xgb.nrounds = xgb.nrounds,
+                    xgb.max.depth = xgb.max.depth,
+                    cb.iterations = cb.iterations,
+                    cb.depth = cb.depth,
+                    torch.epochs = torch.epochs,
+                    torch.hidden_units = torch.hidden_units,
+                    torch.lr = torch.lr,
+                    torch.dropout = torch.dropout,
+                    ensemblefolds = ensemblefolds,
+                    start_nlls = start_nlls)
+
+  structure(list(model = fit,
+                 Xref = as.data.frame(XX),
+                 Yref = YY),
+            class = "mlu_model")
 }

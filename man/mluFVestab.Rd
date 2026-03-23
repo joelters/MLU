@@ -29,7 +29,7 @@ mluFVestab(
 )
 }
 \arguments{
-\item{model}{A model object from mlumodest.}
+\item{model}{An MLU model object from mlumodest. Legacy bare ML model objects are also supported.}
 
 \item{Xi}{Covariate dataframe or matrix for training data (observations i).}
 

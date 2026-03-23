@@ -98,7 +98,8 @@ Options: "Lasso", "Ridge", "RF", "CIF", "XGB", "CB", "Torch", "Logit_lasso", "OL
 \item{verbose}{Logical specifying whether to print progress and model information. Default is TRUE.}
 }
 \value{
-A model object from ML::modest().
+An MLU model object containing the fitted model and cached pairwise
+training reference data used for prediction.
 }
 \description{
 Estimates a machine learning model for pairwise data structures.

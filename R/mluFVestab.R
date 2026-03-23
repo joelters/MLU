@@ -56,6 +56,73 @@ mluFVestab <- function(model,
 
   shape <- match.arg(shape, c("triangle", "square"))
 
+  fit_model <- if (inherits(model, "mlu_model")) model$model else model
+
+  get_reference_data <- function() {
+    if (inherits(model, "mlu_model") && !is.null(model$Xref) && !is.null(model$Yref)) {
+      return(list(Xref = model$Xref, Yref = model$Yref))
+    }
+
+    if (shape == "triangle") {
+      n_train <- length(Yi)
+      if (n_train < 2) {
+        stop("For shape = 'triangle' with a legacy model, Yi must contain at least 2 observations")
+      }
+      n1_train <- n_train - 1
+      XX11 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
+      XX10 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
+      XX00 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
+      YYref <- rep(0, n_train * (n_train - 1) * 0.5)
+      cnt_train <- 0
+      for (ii in seq_len(n1_train)) {
+        jj1 <- ii + 1
+        for (jj in seq.int(jj1, n_train)) {
+          cnt_train <- cnt_train + 1
+          xi_train <- as.numeric(Xi[ii, ])
+          xj_train <- as.numeric(Xi[jj, ])
+          xsum_train <- xi_train + xj_train
+          xdiff_train <- abs(xi_train - xj_train)
+          XX11[cnt_train, ] <- c(2, xsum_train, 0, xdiff_train)
+          XX10[cnt_train, ] <- c(1, xsum_train, 1, xdiff_train)
+          XX00[cnt_train, ] <- c(0, xsum_train, 0, xdiff_train)
+          YYref[cnt_train] <- f(Yi[ii], Yi[jj])
+        }
+      }
+      XXref <- rbind(XX11, XX10, XX00)
+      YYref <- c(YYref, YYref, YYref)
+    } else {
+      if (is.null(Xj) || is.null(Yj)) {
+        stop("For shape = 'square' with a legacy model, Xj and Yj must be provided")
+      }
+      ni_train <- length(Yi)
+      nj_train <- length(Yj)
+      XX11 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
+      XX10 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
+      XX00 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
+      YYref <- rep(0, ni_train * nj_train)
+      cnt_train <- 0
+      for (ii in seq_len(ni_train)) {
+        for (jj in seq_len(nj_train)) {
+          cnt_train <- cnt_train + 1
+          xi_train <- as.numeric(Xi[ii, ])
+          xj_train <- as.numeric(Xj[jj, ])
+          xsum_train <- xi_train + xj_train
+          xdiff_train <- abs(xi_train - xj_train)
+          XX11[cnt_train, ] <- c(2, xsum_train, 0, xdiff_train)
+          XX10[cnt_train, ] <- c(1, xsum_train, 1, xdiff_train)
+          XX00[cnt_train, ] <- c(0, xsum_train, 0, xdiff_train)
+          YYref[cnt_train] <- f(Yi[ii], Yj[jj])
+        }
+      }
+      XXref <- rbind(XX11, XX10, XX00)
+      YYref <- c(YYref, YYref, YYref)
+    }
+
+    list(Xref = as.data.frame(XXref), Yref = YYref)
+  }
+
+  reference_data <- get_reference_data()
+
   if (shape == "square") {
     if (is.null(Xnewj) || is.null(Ynewj) || is.null(Xj) || is.null(Yj)) {
       stop("For shape = 'square', Xj, Yj, Xnewj, and Ynewj must all be provided")
@@ -102,42 +169,14 @@ mluFVestab <- function(model,
   
   if (shape == "triangle") {
     n <- length(Ynewi)
-    n_train <- length(Yi)
     if (n < 2) {
       stop("For shape = 'triangle', Ynewi must contain at least 2 observations")
     }
-    if (n_train < 2) {
-      stop("For shape = 'triangle', Yi must contain at least 2 observations")
-    }
     n1 <- n - 1
-    n1_train <- n_train - 1
-    XX11 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
-    XX10 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
-    XX00 <- matrix(0, n_train * (n_train - 1) * 0.5, ncol(Xi) * 2 + 2)
-    YY <- rep(0, n_train * (n_train - 1) * 0.5)
     XXnew11 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     XXnew10 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     XXnew00 <- matrix(0, n * (n - 1) * 0.5, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, n * (n - 1) * 0.5)
-
-    cnt_train <- 0
-    for (i in seq_len(n1_train)) {
-      j1 <- i + 1
-      for (j in seq.int(j1, n_train)) {
-        cnt_train <- cnt_train + 1
-        xi_train <- as.numeric(Xi[i, ])
-        xj_train <- as.numeric(Xi[j, ])
-        xsum_train <- xi_train + xj_train
-        xdiff_train <- abs(xi_train - xj_train)
-        XX11[cnt_train, ] <- c(2, xsum_train, 0, xdiff_train)
-        XX10[cnt_train, ] <- c(1, xsum_train, 1, xdiff_train)
-        XX00[cnt_train, ] <- c(0, xsum_train, 0, xdiff_train)
-        YY[cnt_train] <- f(Yi[i], Yi[j])
-      }
-    }
-
-    XX <- rbind(XX11, XX10, XX00)
-    YY <- c(YY, YY, YY)
 
     cnt <- 0
     for (i in seq_len(n1)) {
@@ -154,7 +193,7 @@ mluFVestab <- function(model,
         YYnew[cnt] <- f(Ynewi[i], Ynewi[j])
       }
     }
-    fv11 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew11), YYnew, ML = ML,
+    fv11 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew11), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -162,7 +201,7 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv10 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew10), YYnew, ML = ML,
+    fv10 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew10), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -170,7 +209,7 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv00 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew00), YYnew, ML = ML,
+    fv00 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew00), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -182,40 +221,13 @@ mluFVestab <- function(model,
   } else if (shape == "square") {
     ni <- length(Ynewi)
     nj <- length(Ynewj)
-    ni_train <- length(Yi)
-    nj_train <- length(Yj)
     if (ni < 1 || nj < 1) {
       stop("For shape = 'square', both Ynewi and Ynewj must contain at least 1 observation")
     }
-    if (ni_train < 1 || nj_train < 1) {
-      stop("For shape = 'square', both Yi and Yj must contain at least 1 observation")
-    }
-    XX11 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
-    XX10 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
-    XX00 <- matrix(0, ni_train * nj_train, ncol(Xi) * 2 + 2)
-    YY <- rep(0, ni_train * nj_train)
     XXnew11 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     XXnew10 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     XXnew00 <- matrix(0, ni * nj, ncol(Xnewi) * 2 + 2)
     YYnew <- rep(0, ni * nj)
-
-    cnt_train <- 0
-    for (i in seq_len(ni_train)) {
-      for (j in seq_len(nj_train)) {
-        cnt_train <- cnt_train + 1
-        xi_train <- as.numeric(Xi[i, ])
-        xj_train <- as.numeric(Xj[j, ])
-        xsum_train <- xi_train + xj_train
-        xdiff_train <- abs(xi_train - xj_train)
-        XX11[cnt_train, ] <- c(2, xsum_train, 0, xdiff_train)
-        XX10[cnt_train, ] <- c(1, xsum_train, 1, xdiff_train)
-        XX00[cnt_train, ] <- c(0, xsum_train, 0, xdiff_train)
-        YY[cnt_train] <- f(Yi[i], Yj[j])
-      }
-    }
-
-    XX <- rbind(XX11, XX10, XX00)
-    YY <- c(YY, YY, YY)
 
     cnt <- 0
     for (i in seq_len(ni)) {
@@ -231,7 +243,7 @@ mluFVestab <- function(model,
         YYnew[cnt] <- f(Ynewi[i], Ynewj[j])
       }
     }
-    fv11 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew11), YYnew, ML = ML,
+    fv11 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew11), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -239,7 +251,7 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv10 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew10), YYnew, ML = ML,
+    fv10 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew10), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
@@ -247,7 +259,7 @@ mluFVestab <- function(model,
                       polynomial.NLLS_exp = polynomial.NLLS_exp,
                       polynomial.loglin = polynomial.loglin,
                       coefs = coefs)
-    fv00 <- ML::FVest(model, as.data.frame(XX), YY, as.data.frame(XXnew00), YYnew, ML = ML,
+    fv00 <- ML::FVest(fit_model, reference_data$Xref, reference_data$Yref, as.data.frame(XXnew00), YYnew, ML = ML,
                       polynomial.Lasso = polynomial.Lasso,
                       polynomial.Ridge = polynomial.Ridge,
                       polynomial.Logit_lasso = polynomial.Logit_lasso,
